@@ -1,7 +1,8 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module FFI where
+module Connectors.Transaq.FFI where
+
 
 import Foreign
 import Foreign.C.Types
@@ -22,8 +23,8 @@ foreign import ccall "SetLogLevel"    cSetLogLevel    :: CInt       -> IO CStrin
 foreign import ccall "SendCommand"    cSendCommand    :: CString    -> IO CString
 foreign import ccall "FreeMemory"     cFreeMemory     :: CString    -> IO CBool
 foreign import ccall "UnInitialize"   cUnInitialize   :: IO CString
---bool SetCallback(tcallback pCallback)
---bool SetCallbackEx(tcallbackEx pCallbackEx, void* userData)
+--bool SetCallback(tcallback pCallback);
+--bool SetCallbackEx(tcallbackEx pCallbackEx, void* userData);
 
 
 getServiceInfo :: String -> IO (Either (Int, String) String)
@@ -41,8 +42,8 @@ getServiceInfo r = withCString r $
 initialize :: String -> Int -> IO (Maybe String)
 initialize logPath logLevel = withCString logPath $
   \cstr -> do
-      ret <- cInitialize cstr $ fromIntegral logLevel
-      maybePeek peekCString ret
+    ret <- cInitialize cstr $ fromIntegral logLevel
+    maybePeek peekCString ret
 
 unInitialize :: IO (Maybe String)
 unInitialize = do
@@ -51,3 +52,11 @@ unInitialize = do
 
 freeMemory :: CString -> IO Bool
 freeMemory x = fromCBool <$> cFreeMemory x
+
+sendCommand :: String -> IO String
+sendCommand str = withCString str $
+  \cstr -> do
+    ret <- cSendCommand cstr
+    res <- peekCString ret
+    freeMemory ret
+    return res  
