@@ -1,20 +1,15 @@
 import Connectors.Transaq.FFI
 import Connectors.Transaq
+import Text.XML.HXT.Core
+import System.Directory
 
 main :: IO ()
 main = do
-  ret <- getServiceInfo "<request><value>queue_size</value><value>queue_mem_used</value><value>version</value></request>"
-  print ret
-  ret <- initialize "C:\\Users\\Leo\\Documents\\Haskell\\hTransaq\\log\\" 2
-  print ret
-  ret <- unInitialize
-  print ret
-   {-serviceInfo >>= print
-  initialize "C:\\Users\\Leo\\Documents\\Haskell\\hTransaq\\log\\" 2 >>= print
-  connectWith $ do  
+  dir <- getCurrentDirectory
+  conn <- readFile (dir ++ "\\test\\TransaqConnection.xml")
+  let c = readString [withWarnings no] conn
+  serviceInfo >>= print
+  initialize (dir ++ "\\test\\log\\") 2 >>= print
+  connect c >>= print
+  disconnect >>= print  
   unInitialize >>= print
-  print ret
-  ret <- disconnect
-  print ret
-  ret <- unInitialize
-  print ret-}

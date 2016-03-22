@@ -5,17 +5,21 @@ module Connectors.Transaq where
 
 
 import Text.XML.HXT.Core
-import FFI
+import Connectors.Transaq.FFI
 
-parseCommandResult x = x
 
-connectWith xs = do
-  command <- runX $ (mkelem "command" [ sattr "id" "connect" ] xs) >>> writeDocumentToString [withOutputEncoding utf8]
+xmlToString xml = runX $ root [] [xml] >>> writeDocumentToString [withOutputEncoding utf8]
+
+
+parseCommandResult x = return x
+
+connect conn = do
+  [command] <- xmlToString conn
   result <- sendCommand command
   parseCommandResult result
 
 disconnect = do
-  command <- runX $ (mkelem "command" [ sattr "id" "disconnect" ] []) >>> writeDocumentToString [withOutputEncoding utf8]
+  [command] <- xmlToString $ mkelem "command" [ sattr "id" "disconnect" ] []
   result <- sendCommand command
   parseCommandResult result
 
@@ -25,10 +29,11 @@ serviceInfoRequest = mkelem "request" []
   [
     mkelem "value" [] [ txt "queue_size" ], 
     mkelem "value" [] [ txt "queue_mem_used" ],
-    mkelem "value" [] [ txt "connector_version" ]
+    mkelem "value" [] [ txt "version" ]
   ]
 
 serviceInfo = do
-  request <- runX $ serviceInfoRequest >>> writeDocumentToString [withOutputEncoding utf8]
+  [request] <- xmlToString serviceInfoRequest
+  print request
   result <- getServiceInfo request
   return result
