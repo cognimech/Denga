@@ -1,4 +1,4 @@
-## Denga, a Haskell trading framework
+## Denga, Haskell trading framework
 
 ### About
 
