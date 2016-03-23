@@ -1,18 +1,21 @@
-{-# LANGUAGE Arrows, NoMonomorphismRestriction #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 
 module Connectors.Transaq where
 
 
-import Text.XML.HXT.Core
+import Text.XML.Expat.Tree
+import Text.XML.Expat.Format
+import Text.XML.Expat.Cursor
+import qualified Data.ByteString as B
 import Connectors.Transaq.FFI
 
+toXML :: B.ByteString -> Either XMLParseError (Node B.ByteString B.ByteString)
+toXML s = parse' defaultParseOptions s
 
-xmlToString xml = runX $ root [] [xml] >>> writeDocumentToString [withOutputEncoding utf8]
+parseCommandResult s = s
 
-
-parseCommandResult x = return x
-
+{-
 connect conn = do
   [command] <- xmlToString conn
   result <- sendCommand command
@@ -22,18 +25,17 @@ disconnect = do
   [command] <- xmlToString $ mkelem "command" [ sattr "id" "disconnect" ] []
   result <- sendCommand command
   parseCommandResult result
+-}
 
-
-serviceInfoRequest  :: ArrowXml a => a XmlTree XmlTree
-serviceInfoRequest = mkelem "request" []
-  [
-    mkelem "value" [] [ txt "queue_size" ], 
-    mkelem "value" [] [ txt "queue_mem_used" ],
-    mkelem "value" [] [ txt "version" ]
+serviceInfoRequest :: Node B.ByteString B.ByteString
+serviceInfoRequest = Element "request" [] [
+  Element "value" [] [Text "queue_size"],
+  Element "value" [] [Text "queue_mem_used"],
+  Element "value" [] [Text "version"]
   ]
 
+--serviceInfo :: IO B.ByteString
 serviceInfo = do
-  [request] <- xmlToString serviceInfoRequest
-  print request
+  let request = formatNode' serviceInfoRequest
   result <- getServiceInfo request
   return result
