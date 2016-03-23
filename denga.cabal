@@ -1,8 +1,8 @@
-name:                Di
+name:                denga
 version:             0.1.0.0
 synopsis:            Haskell trading toolkit.
 description:         Please see README.md
-homepage:            http://github.com/cognimech/Di#readme
+homepage:            http://github.com/cognimech/denga#readme
 license:             BSD3
 license-file:        LICENSE
 author:              Leonid Vlasenkov
@@ -22,12 +22,12 @@ library
                      , bytestring
   default-language:    Haskell2010
 
-test-suite Di-test
+test-suite denga-test
   type:                exitcode-stdio-1.0
   hs-source-dirs:      test
   main-is:             Spec.hs
   build-depends:       base
-                     , Di
+                     , denga
                      , hexpat
                      , directory
                      , bytestring
@@ -36,4 +36,4 @@ test-suite Di-test
     
 source-repository head
   type:     git
-  location: https://github.com/cognimech/Di
+  location: https://github.com/cognimech/denga

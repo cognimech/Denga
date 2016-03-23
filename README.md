@@ -1,8 +1,8 @@
-## Di, a Haskell trading toolkit
+## Denga, a Haskell trading framework
 
 ### About
 
-Di is an open source trading framework written in Haskell. It is designed to provide:
+Denga is an open source trading framework written in Haskell. It is designed to provide:
 
 * connector/backtesting independent interface
 * powerful tools for backtesting
