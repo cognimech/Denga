@@ -10,22 +10,18 @@ import Text.XML.Expat.Cursor
 import qualified Data.ByteString as B
 import Connectors.Transaq.FFI
 
-toXML :: B.ByteString -> Either XMLParseError (Node B.ByteString B.ByteString)
-toXML s = parse' defaultParseOptions s
 
-parseCommandResult s = s
+parseCommandResult s = return s
 
-{-
+connect :: Node B.ByteString B.ByteString -> IO B.ByteString
 connect conn = do
-  [command] <- xmlToString conn
+  let command = formatNode' conn
   result <- sendCommand command
   parseCommandResult result
 
 disconnect = do
-  [command] <- xmlToString $ mkelem "command" [ sattr "id" "disconnect" ] []
-  result <- sendCommand command
+  result <- sendCommand "<command id=\"disconnect\"/>"
   parseCommandResult result
--}
 
 serviceInfoRequest :: Node B.ByteString B.ByteString
 serviceInfoRequest = Element "request" [] [
