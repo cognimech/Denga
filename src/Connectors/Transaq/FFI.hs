@@ -12,7 +12,9 @@ module Connectors.Transaq.FFI (
   getServiceInfo,
   initialize,
   unInitialize,
-  sendCommand
+  sendCommand,
+  setCallback,
+  setCallbackEx
 
   ) where
 
@@ -30,12 +32,17 @@ fromCBool x
   | x == 0    = False
   | otherwise = True
 
-type TCallback = FunPtr (CString -> CBool)
-type TCallbackEx a = FunPtr (CString -> Ptr a -> CBool)
+toCBool :: Bool -> CBool
+toCBool x
+  | x == True  = 1
+  | x == False = 0
+
+type TCallback = FunPtr (CString -> IO CBool)
+type TCallbackEx a = FunPtr (CString -> Ptr a -> IO CBool)
 
 
-foreign import ccall "wrapper" toTCallback :: (CString -> CBool) -> IO TCallback
-foreign import ccall "wrapper" toTCallbackEx :: (CString -> Ptr a -> CBool) -> IO (TCallbackEx a)
+foreign import ccall "wrapper" toTCallback :: (CString -> IO CBool) -> IO TCallback
+foreign import ccall "wrapper" toTCallbackEx :: (CString -> Ptr a -> IO CBool) -> IO (TCallbackEx a)
 
 foreign import ccall "GetServiceInfo" cGetServiceInfo :: CString       -> Ptr CString -> IO CInt
 foreign import ccall "Initialize"     cInitialize     :: CString       -> CInt        -> IO CString
@@ -56,7 +63,7 @@ getServiceInfo r = B.useAsCString r $
       err <- fromIntegral <$> cGetServiceInfo cstr strptr
       str <- peek strptr
       res <- B.packCString str
-      freeMemory str
+      cFreeMemory str
       if err == 0
         then return $ Right res
         else return $ Left (err, res)
@@ -76,17 +83,13 @@ unInitialize = do
   ret <- cUnInitialize
   maybePeekAndFree ret
 
--- |Wrapper function for @FreeMemory@.
-freeMemory :: CString -> IO Bool
-freeMemory x = fromCBool <$> cFreeMemory x
-
 -- |'maybePeek' analog. Frees memory if there is something to free.
 maybePeekAndFree :: CString -> IO (Maybe B.ByteString)
 maybePeekAndFree ptr
   | ptr == nullPtr  = return Nothing
   | otherwise       = do
     a <- B.packCString ptr
-    freeMemory ptr
+    cFreeMemory ptr
     return (Just a)
 
 -- |Wrapper function for @SendCommand@.
@@ -95,5 +98,39 @@ sendCommand str = B.useAsCString str $
   \cstr -> do
     ret <- cSendCommand cstr
     res <- B.packCString ret
-    freeMemory ret
+    cFreeMemory ret
     return res
+
+-- |Wrapper function for @SetCallback@. Returns pointer to callback function on success and 'Nothing' on fail.
+-- The pointer to callback should be freed manually using 'freeHaskellFunPtr' when the callback is not needed anymore.
+setCallback :: (B.ByteString -> IO Bool) -> IO (Maybe TCallback)
+setCallback f = do
+  let
+    g cs = do
+      bs <- B.packCString cs
+      cFreeMemory cs
+      toCBool <$> f bs
+  funptr <- toTCallback g
+  retval <- cSetCallback funptr
+  if retval == 0
+    then do
+      freeHaskellFunPtr funptr
+      return Nothing
+    else return $ Just funptr
+
+-- |Wrapper function for @SetCallbackEx@. Returns pointer to callback function on success and 'Nothing' on fail.
+-- The pointer to callback should be freed manually using 'freeHaskellFunPtr' when the callback is not needed anymore.
+setCallbackEx :: (B.ByteString -> Ptr a -> IO Bool) -> Ptr a -> IO (Maybe (TCallbackEx a))
+setCallbackEx f p = do
+  let
+    g cs ptr = do
+      bs <- B.packCString cs
+      cFreeMemory cs
+      toCBool <$> f bs ptr
+  funptr <- toTCallbackEx g
+  retval <- cSetCallbackEx funptr p
+  if retval == 0
+  then do
+    freeHaskellFunPtr funptr
+    return Nothing
+  else return $ Just funptr
