@@ -1,6 +1,6 @@
 {
   "name": "Denga",
-  "tagline": "Haskell trading framework.",
+  "tagline": "Haskell trading framework",
   "body": "## Denga, Haskell trading framework\r\n\r\n### About\r\n\r\nDenga is an open source trading framework written in Haskell. It is designed to provide:\r\n\r\n* connector/backtesting independent interface\r\n* powerful tools for backtesting\r\n* excellent documentation and examples\r\n",
   "note": "Don't delete this file! It's used internally to help with page regeneration."
 }
