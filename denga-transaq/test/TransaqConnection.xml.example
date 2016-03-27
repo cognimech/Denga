@@ -1,6 +1,0 @@
-<command id="connect">
-    <login>LOGIN</login>
-    <password>password</password>
-    <host>ip</host>
-    <port>port</port>
-</command>
