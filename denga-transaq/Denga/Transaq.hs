@@ -38,9 +38,6 @@ import qualified Denga.Transaq.FFI as FFI
 
 type XML = Node B.ByteString B.ByteString
 type Transaq = StateT TransaqState IO
-type Sequrity = Int
-
-instance SequrityC Sequrity
 
 data TransaqState = TransaqState {
   _callbackFunPtr :: Maybe FFI.TCallback,
@@ -70,26 +67,29 @@ updateCallback = do
       callbackFunPtr .= mbcb
       return True
 
-xmlToTick :: XML -> Tick Sequrity
+xmlToTick :: XML -> Tick
 xmlToTick xml =
   let
     Just p = findChild "price" xml
     price = (getText.head.getChildren) p
     Just (pr, str) = readDecimal price
-  in Tick {tickPrice = pr, tickSequrity = 1}
+  in Tick {tickPrice = pr}
 
 
 instance DataSource Transaq where
   onTick f = do
-    let g ts = map (f.xmlToTick) $ eChildren ts
-    callbacks %%= Map.insert "ticks" g
+    let
+      g ts = do
+        bs <- sequence $ map (f.xmlToTick) $ eChildren ts
+        return $ foldl (&&) True bs
+    callbacks %= Map.insert "ticks" g
     updateCallback
 
 
 parseCommandResult s = return s
 
 connect conn = do
-  let command = formatNode' conn
+  let command = formatNode' (conn :: XML)
   result <- FFI.sendCommand command
   parseCommandResult result
 

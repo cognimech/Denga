@@ -1,9 +1,3 @@
-## Denga, Haskell trading framework
+## Denga.Transaq
 
-### About
-
-Denga is an open source trading framework written in Haskell. It is designed to provide:
-
-* connector/backtesting independent interface
-* powerful tools for backtesting
-* excellent documentation and examples
+This package defines `DataSource` instance for Transaq Connector API.
