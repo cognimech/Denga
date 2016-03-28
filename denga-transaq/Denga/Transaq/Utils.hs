@@ -5,26 +5,17 @@
 
 -- | 
 
-module Denga.Transaq (
-
-  Transaq (..),
-  ServiceInfo (..),
-  getServiceInfo,
-  initialize,
-  unInitialize,
-  connect,
-  disconnect
-
+module Denga.Transaq.Utils
+  ( updateCallback
+  , getChildText
+  , xmlToTick
+  , parseCommandResult
   ) where
 
-import           Control.Monad.State
-import           Control.Concurrent.MVar
 import           Control.Lens
 import qualified Data.ByteString as B
-import qualified Data.ByteString.Char8 as BC8
 import           Data.ByteString.Lex.Fractional
 import qualified Data.Map as Map
-import           Data.Default
 import           Foreign (freeHaskellFunPtr)
 import           Text.XML.Expat.Tree
 import           Text.XML.Expat.Format
@@ -33,12 +24,10 @@ import           Denga.Core
 import           Denga.Transaq.Types
 import qualified Denga.Transaq.FFI as FFI
 
-import Data.Maybe (fromJust)
-
 
 -- | Make single callback function to pass to 'FFI.setCallback' by partial appliance to a 'Map.Map'
 -- of separate user-specified callbacks.
-mkCallback :: Map.Map B.ByteString (XML -> IO Bool) -> B.ByteString -> IO Bool
+mkCallback :: Map.Map BString (XML -> IO Bool) -> BString -> IO Bool
 mkCallback cbmap bs =
   case parse' defaultParseOptions bs of
     Left _    -> return False
@@ -62,7 +51,7 @@ updateCallback = do
       return True
 
 
-getChildText :: B.ByteString -> XML -> Maybe B.ByteString
+getChildText :: BString -> XML -> Maybe BString
 getChildText nm xml = do
   c <- findChild nm xml
   case onlyText $ eChildren c of
@@ -79,3 +68,6 @@ xmlToTick xml =
 
 -- | Parse command result returning either success or error message
 parseCommandResult s = return s
+
+connectionToXML :: Connection -> XML
+connectionToXML c = 

@@ -7,16 +7,12 @@
 
 -- | 
 
-module Denga.Transaq (
-
-  Transaq (..),
-  ServiceInfo (..),
-  getServiceInfo,
-  initialize,
-  unInitialize,
-  connect,
-  disconnect
-
+module Denga.Transaq 
+  ( getServiceInfo
+  , initialize
+  , unInitialize
+  , connect
+  , disconnect
   ) where
 
 import           Control.Monad.State
@@ -24,25 +20,26 @@ import           Control.Concurrent.MVar
 import           Control.Lens
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as BC8
-import           Data.ByteString.Lex.Fractional
 import qualified Data.Map as Map
-import           Data.Default
-import           Foreign (freeHaskellFunPtr)
 import           Text.XML.Expat.Tree
 import           Text.XML.Expat.Format
 import           Text.XML.Expat.Proc
 import           Denga.Core
 import           Denga.Transaq.Types
+import           Denga.Transaq.Utils
 import qualified Denga.Transaq.FFI as FFI
 
 import Data.Maybe (fromJust)
 
 
-connect conn = do
-  let command = formatNode' (conn :: XML)
+connect :: Transaq BString
+connect = do
+  sts <- use settings
+  let command = formatNode' (connectionToXML $ connection sts)
   result <- FFI.sendCommand command
   parseCommandResult result
 
+disconnect :: Transaq BString
 disconnect = do
   result <- FFI.sendCommand "<command id=\"disconnect\"/>"
   parseCommandResult result
@@ -57,14 +54,16 @@ getServiceInfo = do
       case parse' defaultParseOptions bs of
         Left _    -> return $ Left (0, "Parse error")
         Right xml -> return $ Right $
-          ServiceInfo {
-            serInfQueueSize = fromJust $ getChildText "queue_size" xml,
-            serInfQueueMemUsed = fromJust $ getChildText "queue_mem_used" xml,
-            serInfVersion = fromJust $ getChildText "version" xml
+          ServiceInfo
+            { serInfQueueSize = fromJust $ getChildText "queue_size" xml
+            , serInfQueueMemUsed = fromJust $ getChildText "queue_mem_used" xml
+            , serInfVersion = fromJust $ getChildText "version" xml
             }
 
-initialize :: String -> Int -> Transaq (Maybe B.ByteString)
-initialize s d = liftIO $ FFI.initialize (BC8.pack s) d
+initialize :: Transaq (Maybe B.ByteString)
+initialize s d = do
+  sts <- use settings
+  liftIO $ FFI.initialize (BC8.pack $ logDirectory sts) (logLevel sts)
 
 unInitialize :: Transaq (Maybe B.ByteString)
 unInitialize = liftIO $ FFI.unInitialize

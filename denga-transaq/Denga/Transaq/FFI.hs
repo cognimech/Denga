@@ -7,23 +7,22 @@
 -- | This module provides low-level interface for @txmlconnector@ library (<http://www.finam.ru/howtotrade/tconnector/>).
 -- For more details on how to use these functions see official TXmlConnector user guide.
 
-module Denga.Transaq.FFI (
-
-  getServiceInfo,
-  initialize,
-  unInitialize,
-  sendCommand,
-  setCallback,
-  setCallbackEx,
-  TCallback,
-  TCallbackEx
-
+module Denga.Transaq.FFI
+  ( getServiceInfo
+  , initialize
+  , unInitialize
+  , sendCommand
+  , setCallback
+  , setCallbackEx
+  , TCallback
+  , TCallbackEx
   ) where
 
 import           Foreign
 import           Foreign.C.Types
 import           Foreign.C.String
 import qualified Data.ByteString as B
+import qualified Data.ByteString.Char8 as BC8
 
 
 type CBool = CInt
@@ -58,7 +57,7 @@ foreign import ccall "UnInitialize"   cUnInitialize   :: IO CString
 
 -- |Wrapper function for @GetServiceInfo@.
 -- Returns either tuple (error code, error message) or service info.
-getServiceInfo :: B.ByteString -> IO (Either (Int, B.ByteString) B.ByteString)
+getServiceInfo :: B.ByteString -> IO (Either (Int, String) B.ByteString)
 getServiceInfo r = B.useAsCString r $
   \cstr -> alloca $
     \strptr -> do
@@ -68,11 +67,11 @@ getServiceInfo r = B.useAsCString r $
       cFreeMemory str
       if err == 0
         then return $ Right res
-        else return $ Left (err, res)
+        else return $ Left (err, BC8.pack res)
 
 -- |Wrapper function for @Initialize@.
 -- Returns Nothing on success and error message on error
-initialize :: B.ByteString -> Int -> IO (Maybe B.ByteString)
+initialize :: B.ByteString -> Int -> IO (Maybe String)
 initialize logPath logLevel = B.useAsCString logPath $
   \cstr -> do
     ret <- cInitialize cstr $ fromIntegral logLevel
@@ -80,17 +79,17 @@ initialize logPath logLevel = B.useAsCString logPath $
 
 -- |Wrapper function for @UnInitialize@.
 -- Returns Nothing on success and error message on error
-unInitialize :: IO (Maybe B.ByteString)
+unInitialize :: IO (Maybe String)
 unInitialize = do
   ret <- cUnInitialize
   maybePeekAndFree ret
 
 -- |'maybePeek' analog. Frees memory if there is something to free.
-maybePeekAndFree :: CString -> IO (Maybe B.ByteString)
+maybePeekAndFree :: CString -> IO (Maybe String)
 maybePeekAndFree ptr
   | ptr == nullPtr  = return Nothing
   | otherwise       = do
-    a <- B.packCString ptr
+    a <- peekCString ptr
     cFreeMemory ptr
     return (Just a)
 

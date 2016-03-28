@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings    #-}
 {-# LANGUAGE TemplateHaskell      #-}
+{-# LANGUAGE DeriveDataTypeable   #-}
 
 -- denga, Haskell trading framework
 -- Copyright (C) 2016 Leonid Vlasenkov <leo.vlasenkov@gmail.com>
@@ -16,10 +17,12 @@ module Denga.Transaq.Types
   ) where
 
 import           Control.Monad.State
+import           Control.Exception
 import           Control.Lens
 import qualified Data.ByteString as B
 import qualified Data.Map as Map
 import           Data.Default
+import           Data.Typeable (Typeable)
 import           Text.XML.Expat.Tree
 import           Denga.Transaq.FFI (TCallback)
 
@@ -27,6 +30,13 @@ import           Denga.Transaq.FFI (TCallback)
 type BString = B.ByteString
 type XML = Node BString BString
 type Transaq = StateT TransaqState IO
+
+data TransaqError
+  = TransaqXMLParseError String
+  | TransaqCommandResultError String
+  deriving (Show, Typeable)
+
+instance Exception TransaqError
 
 data TransaqState = TransaqState
   { _callbackFunPtr :: Maybe TCallback
@@ -64,15 +74,40 @@ instance Default Settings where
     , logLevel = 2
     }
 
-
 data Connection = Connection
   { login    :: BString
   , password :: BString
   , host     :: BString
   , port     :: BString
+  , autopos  :: Maybe Bool
+  , micex_registers :: Maybe Bool
+  , milliseconds :: Maybe Bool
+  , utc_time :: Maybe Bool
+  , proxy :: Maybe Proxy
+  , rqdelay
+  , session_timeout 
+  , request_timeout :: Maybe Int
+  , push_u_limits   :: Maybe Int
+  , push_pos_equity :: Maybe Int
   }
 
 instance Default Connection where
+  def = Connection
+    { login = ""
+    , password = ""
+    , host = ""
+    , port = ""
+    }
+
+data Proxy = Proxy
+  { proxyType
+  , proxyAddr
+  , proxyPort
+  , proxyLogin
+  , proxyPassword
+  }
+
+instance Default Proxy where
   def = Connection
     { login = ""
     , password = ""
