@@ -8,6 +8,8 @@ resolver: lts-5.8
 packages:
   - ./denga-core
   - ./denga-transaq
+  - ./denga-backtest
+  - ./denga-finance
 
 # Packages to be pulled from upstream that are not in the resolver (e.g., acme-missiles-0.3)
 extra-deps: []
