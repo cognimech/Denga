@@ -16,6 +16,8 @@ module Denga.Transaq.Types
   , BString
   ) where
 
+
+
 import           Control.Monad.State
 import           Control.Exception
 import           Control.Lens
@@ -27,93 +29,115 @@ import           Text.XML.Expat.Tree
 import           Denga.Transaq.FFI (TCallback)
 
 
+
 type BString = B.ByteString
 type XML = Node BString BString
 type Transaq = StateT TransaqState IO
 
+
+
 data TransaqError
-  = TransaqXMLParseError String
-  | TransaqCommandResultError String
-  deriving (Show, Typeable)
+    = TransaqXMLParseError String
+    | TransaqCommandResultError String
+    deriving (Show, Typeable)
 
 instance Exception TransaqError
 
+
+
 data TransaqState = TransaqState
-  { _callbackFunPtr :: Maybe TCallback
-  , _callbacks      :: Map.Map BString (XML -> IO Bool)
-  , _settings       :: Settings
-  }
+    { _callbackFunPtr :: !Maybe TCallback
+    , _callbacks      :: !Map.Map BString (XML -> IO Bool)
+    , _settings       :: !Settings
+    }
 
 instance Default TransaqState where
-  def = TransaqState
-    { _callbackFunPtr = Nothing
-    , _callbacks = Map.empty
-    , _settings = def 
-    }
+    def = TransaqState
+        { _callbackFunPtr = Nothing
+        , _callbacks      = Map.empty
+        , _settings       = def 
+        }
 
 makeLenses ''TransaqState
 
 
+
 data ServiceInfo = ServiceInfo
-  { serInfQueueSize    :: BString
-  , serInfQueueMemUsed :: BString
-  , serInfVersion      :: BString
-  } deriving (Show)
+    { serInfQueueSize    :: BString
+    , serInfQueueMemUsed :: BString
+    , serInfVersion      :: BString
+    } deriving (Show)
+
 
 
 data Settings = Settings
-  { connection   :: Connection
-  , logDirectory :: String
-  , logLevel     :: Int
-  }
+    { connection   :: !Connection
+    , logDirectory :: !String
+    , logLevel     :: !Int
+    }
 
 instance Default Settings where
-  def = Settings
-    { connection = def
-    , logDirectory = ""
-    , logLevel = 2
-    }
+    def = Settings
+        { connection = def
+        , logDirectory = ""
+        , logLevel = 2
+        }
+
+
 
 data Connection = Connection
-  { login    :: BString
-  , password :: BString
-  , host     :: BString
-  , port     :: BString
-  , autopos  :: Maybe Bool
-  , micex_registers :: Maybe Bool
-  , milliseconds :: Maybe Bool
-  , utc_time :: Maybe Bool
-  , proxy :: Maybe Proxy
-  , rqdelay
-  , session_timeout 
-  , request_timeout :: Maybe Int
-  , push_u_limits   :: Maybe Int
-  , push_pos_equity :: Maybe Int
-  }
+    { login           :: !BString
+    , password        :: !BString
+    , host            :: !BString
+    , port            :: !BString
+    , autopos         :: !Maybe Bool
+    , micex_registers :: !Maybe Bool
+    , milliseconds    :: !Maybe Bool
+    , utc_time        :: !Maybe Bool
+    , proxy           :: !Maybe Proxy
+    , rqdelay         :: !Maybe
+    , session_timeout :: !Maybe 
+    , request_timeout :: !Maybe Int
+    , push_u_limits   :: !Maybe Int
+    , push_pos_equity :: !Maybe Int
+    }
 
 instance Default Connection where
-  def = Connection
-    { login = ""
-    , password = ""
-    , host = ""
-    , port = ""
-    }
+    def = Connection
+        { login           = ""
+        , password        = ""
+        , host            = ""
+        , port            = ""
+        , autopos         = Nothing
+        , micex_registers = Nothing
+        , milliseconds    = Nothing
+        , utc_time        = Nothing
+        , proxy           = Nothing
+        , rqdelay         = Nothing
+        , session_timeout = Nothing
+        , request_timeout = Nothing
+        , push_u_limits   = Nothing
+        , push_pos_equity = Nothing
+        }
+
+
 
 data Proxy = Proxy
-  { proxyType
-  , proxyAddr
-  , proxyPort
-  , proxyLogin
-  , proxyPassword
-  }
+    { proxyType     :: !Maybe BString
+    , proxyAddr     :: !Maybe BString
+    , proxyPort     :: !Maybe BString
+    , proxyLogin    :: !Maybe BString
+    , proxyPassword :: !Maybe BString
+    }
 
 instance Default Proxy where
-  def = Connection
-    { login = ""
-    , password = ""
-    , host = ""
-    , port = ""
-    }
+    def = Proxy
+        { proxyType     = Nothing
+        , proxyAddr     = Nothing
+        , proxyPort     = Nothing
+        , proxyLogin    = Nothing
+        , proxyPassword = Nothing
+        }
 
 
 
