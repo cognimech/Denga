@@ -38,30 +38,12 @@ boolToBS :: Bool -> BString
 boolToBS x = if x then "true" else "false"
 
 data TransaqError
-    = TransaqXMLParseError String
-    | TransaqCommandResultError String
+    = XMLParserException String
+    | SendCommandException String
     | TransaqError String
     deriving (Show, Typeable)
 
 instance Exception TransaqError
-
-
-
-data TransaqState = TransaqState
-    { _callbackFunPtr :: !Maybe TCallback
-    , _callbacks      :: !Map.Map BString (XML -> IO Bool)
-    , _settings       :: !Settings
-    }
-
-instance Default TransaqState where
-    def = TransaqState
-        { _callbackFunPtr = Nothing
-        , _callbacks      = Map.empty
-        , _settings       = def 
-        }
-
-makeLenses ''TransaqState
-
 
 
 data ServiceInfo = ServiceInfo
@@ -92,16 +74,16 @@ data Connection = Connection
     , password        :: !BString
     , host            :: !BString
     , port            :: !Int
-    , autopos         :: !Maybe Bool
-    , micex_registers :: !Maybe Bool
-    , milliseconds    :: !Maybe Bool
-    , utc_time        :: !Maybe Bool
-    , proxy           :: !Maybe Proxy
-    , rqdelay         :: !Maybe Int
-    , session_timeout :: !Maybe Int
-    , request_timeout :: !Maybe Int
-    , push_u_limits   :: !Maybe Int
-    , push_pos_equity :: !Maybe Int
+    , autopos         :: !(Maybe Bool)
+    , micex_registers :: !(Maybe Bool)
+    , milliseconds    :: !(Maybe Bool)
+    , utc_time        :: !(Maybe Bool)
+    , proxy           :: !(Maybe Proxy)
+    , rqdelay         :: !(Maybe Int)
+    , session_timeout :: !(Maybe Int)
+    , request_timeout :: !(Maybe Int)
+    , push_u_limits   :: !(Maybe Int)
+    , push_pos_equity :: !(Maybe Int)
     }
 
 instance Default Connection where
@@ -123,31 +105,32 @@ instance Default Connection where
         }
 
 connectionToXML :: Connection -> XML
-connectionToXML c = Element "command" [("id", "connect")]
+connectionToXML c = Element "command" [("id", "connect")] $
     [ Element "login" [] [Text $ login c]
     , Element "password" [] [Text $ password c]
     , Element "host" [] [Text $ host c]
     , Element "port" [] [Text $ uIntToBS $ port c]
-    , Element "autopos" [] [Text $ boolToBS $ autopos c]
-    ] ++ $ catMaybes
-        [ fmap (\x -> Element "autopos" [] [Text $ boolToBS x]) $ autopos c
-        , fmap (\x -> Element "micex_registers" [] [Text $ boolToBS x]) $ micex_registers c
-        , fmap (\x -> Element "milliseconds" [] [Text $ boolToBS x]) $ milliseconds c
-        , fmap (\x -> Element "utc_time" [] [Text $ boolToBS x]) $ utc_time c
-        , fmap (\x -> proxyToXML x) $ proxy c
-        , fmap (\x -> Element "rqdelay" [] [Text $ uIntToBS x]) $ rqdelay c
-        , fmap (\x -> Element "session_timeout" [] [Text $ uIntToBS x]) $ session_timeout c
-        , fmap (\x -> Element "request_timeout" [] [Text $ uIntToBS x]) $ request_timeout c
-        , fmap (\x -> Element "push_u_limits" [] [Text $ uIntToBS x]) $ push_u_limits c
-        , fmap (\x -> Element "push_pos_equity" [] [Text $ uIntToBS x]) $ push_pos_equity c
-        ]
+    ] ++ optional
+    where
+        optional = catMaybes
+            [ fmap (\x -> Element "autopos" [] [Text $ boolToBS x]) $ autopos c
+            , fmap (\x -> Element "micex_registers" [] [Text $ boolToBS x]) $ micex_registers c
+            , fmap (\x -> Element "milliseconds" [] [Text $ boolToBS x]) $ milliseconds c
+            , fmap (\x -> Element "utc_time" [] [Text $ boolToBS x]) $ utc_time c
+            , fmap (\x -> proxyToXML x) $ proxy c
+            , fmap (\x -> Element "rqdelay" [] [Text $ uIntToBS x]) $ rqdelay c
+            , fmap (\x -> Element "session_timeout" [] [Text $ uIntToBS x]) $ session_timeout c
+            , fmap (\x -> Element "request_timeout" [] [Text $ uIntToBS x]) $ request_timeout c
+            , fmap (\x -> Element "push_u_limits" [] [Text $ uIntToBS x]) $ push_u_limits c
+            , fmap (\x -> Element "push_pos_equity" [] [Text $ uIntToBS x]) $ push_pos_equity c
+            ]
 
 data Proxy = Proxy
-    { proxyType     :: !Maybe BString
-    , proxyAddr     :: !Maybe BString
-    , proxyPort     :: !Maybe BString
-    , proxyLogin    :: !Maybe BString
-    , proxyPassword :: !Maybe BString
+    { proxyType     :: !(Maybe BString)
+    , proxyAddr     :: !(Maybe BString)
+    , proxyPort     :: !(Maybe BString)
+    , proxyLogin    :: !(Maybe BString)
+    , proxyPassword :: !(Maybe BString)
     }
 
 instance Default Proxy where
@@ -161,11 +144,27 @@ instance Default Proxy where
 
 proxyToXML :: Proxy -> XML
 proxyToXML p = Element "proxy" attrs []
-    where attrs = catMaybes
-        [ fmap (\x -> ("type", x)) $ proxyType p
-        , fmap (\x -> ("addr", x)) $ proxyAddr p
-        , fmap (\x -> ("port", x)) $ proxyPort p
-        , fmap (\x -> ("login", x)) $ proxyLogin p
-        , fmap (\x -> ("password", x)) $ proxyPassword p
-        ]
+    where
+        attrs = catMaybes
+            [ fmap (\x -> ("type", x)) $ proxyType p
+            , fmap (\x -> ("addr", x)) $ proxyAddr p
+            , fmap (\x -> ("port", x)) $ proxyPort p
+            , fmap (\x -> ("login", x)) $ proxyLogin p
+            , fmap (\x -> ("password", x)) $ proxyPassword p
+            ]
 
+
+data TransaqState = TransaqState
+    { _callbackFunPtr :: !(Maybe TCallback)
+    , _callbacks      :: !(Map.Map BString (XML -> IO Bool))
+    , _settings       :: !Settings
+    }
+
+instance Default TransaqState where
+    def = TransaqState
+        { _callbackFunPtr = Nothing
+        , _callbacks      = Map.empty
+        , _settings       = def 
+        }
+
+makeLenses ''TransaqState

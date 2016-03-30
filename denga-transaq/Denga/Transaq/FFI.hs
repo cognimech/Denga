@@ -73,7 +73,7 @@ getServiceInfo r = B.useAsCString r $
             cFreeMemory str
             if err == 0
                 then return $ Right res
-                else return $ Left (err, BC8.pack res)
+                else return $ Left (err, BC8.unpack res)
 
 -- |Wrapper function for @Initialize@.
 -- Returns Nothing on success and error message on error

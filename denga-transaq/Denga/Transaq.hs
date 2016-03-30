@@ -14,9 +14,12 @@ module Denga.Transaq
     , unInitialize
     , connect
     , disconnect
+    , module Data.Default
+    , module Denga.Transaq.Types
     ) where
 
-
+-- remove it!
+import           Data.Default (def)
 
 import           Control.Monad.State
 import           Control.Concurrent.MVar
@@ -46,10 +49,10 @@ import qualified Denga.Transaq.FFI as FFI
 -----------------------------------------------------------------------------------------------------------------------------
 
 -- | Launch your algorithm.
-runTransaq :: Settings  -- ^ Transaq settings specified by user. 'def' may be used.
-           -> Transaq a -- ^ Algorithm. Sequence of actions inside Transaq monad.
+runTransaq :: Transaq a -- ^ Algorithm. Sequence of actions inside Transaq monad.
+           -> Settings  -- ^ Transaq settings specified by user. 'def' may be used.
            -> IO a      -- ^ Return value of the algorithm.
-runTransaq s algo = evalStateT ( def { _settings = s } ) algo
+runTransaq algo s = evalStateT algo $ def { _settings = s }
 
 -- | Send @connect@ command with default (previously specified) settings.
 -- Return 'Nothing' on succes or a message on fail.
@@ -67,7 +70,7 @@ disconnect = do
 -- | Initialize Transaq Connector.
 -- Return 'Nothing' on succes or a message on fail.
 initialize :: Transaq (Maybe String)
-initialize s d = do
+initialize = do
     sts <- use settings
     liftIO $ FFI.initialize (BC8.pack $ logDirectory sts) (logLevel sts)
 
@@ -84,7 +87,7 @@ getServiceInfo = do
         "<request><value>queue_size</value><value>queue_mem_used</value><value>version</value></request>"
     case result of
         Left err -> return $ Left err
-        Right bs -> withXML bs $ \xml -> return $ Right $ ServiceInfo
+        Right bs -> handleXMLData bs $ \xml -> return $ Right $ ServiceInfo
             { serInfQueueSize = fromJust $ getChildText "queue_size" xml
             , serInfQueueMemUsed = fromJust $ getChildText "queue_mem_used" xml
             , serInfVersion = fromJust $ getChildText "version" xml
@@ -97,16 +100,16 @@ getServiceInfo = do
 sendCommand :: BString -> IO (Maybe String)
 sendCommand command = do
     result <- FFI.sendCommand command
-    return $ withXML result $ \xml -> case xml of
+    return $ handleXMLData result $ \xml -> case xml of
         Element "result" [("success", "true")]  _                                -> Nothing
-        Element "result" [("success", "false")] [Element "message" _ [Text msg]] -> Just msg
-        Element "error"  _                      [Text msg]                       -> throw $ SendCommandException msg
+        Element "result" [("success", "false")] [Element "message" _ [Text msg]] -> Just $ BC8.unpack msg
+        Element "error"  _                      [Text msg]                   -> throw $ SendCommandException $ BC8.unpack msg
         otherwise -> throw $ XMLParserException "illegal attributes for <result> element"
 
 -- | Make single callback function to pass to 'FFI.setCallback' by partial appliance to a 'Map.Map'
 -- of separate user-specified callbacks.
 mkCallback :: Map.Map BString (XML -> IO Bool) -> BString -> IO Bool
-mkCallback cbmap bs = withXML bs $ \xml -> case Map.lookup (eName xml) cbmap of
+mkCallback cbmap bs = handleXMLData bs $ \xml -> case Map.lookup (eName xml) cbmap of
     Just cb -> cb xml
     Nothing -> return True
 
@@ -151,12 +154,9 @@ xmlToTick xml =
         Just (pr, str) = readDecimal price
     in  Tick {tickPrice = pr}
 
-connectionToXML :: Connection -> XML
-connectionToXML c =
 
-
-handleXML :: BString -> (XML -> a) -> a
-handleXML bs h = case parse' defaultParseOptions bs of
+handleXMLData :: BString -> (XML -> a) -> a
+handleXMLData bs h = case parse' defaultParseOptions bs of
     Left (XMLParseError msg loc) -> throw $ XMLParserException msg
     Right xml                    -> h xml
 

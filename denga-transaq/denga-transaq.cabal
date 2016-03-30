@@ -16,6 +16,7 @@ cabal-version:       >=1.10
 library
   exposed-modules:     Denga.Transaq
                      , Denga.Transaq.FFI
+                     , Denga.Transaq.Types
   build-depends:       base >= 4.7 && < 5
                      , denga-core
                      , hexpat
@@ -32,7 +33,9 @@ test-suite denga-transaq-test
   hs-source-dirs:      test
   main-is:             Spec.hs
   build-depends:       base
-                     , denga
+                     , denga-core
+                     , transformers
+                     , denga-transaq
                      , hexpat
                      , directory
                      , bytestring
