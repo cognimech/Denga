@@ -26,12 +26,14 @@ library
                      , lens
                      , containers
                      , data-default
+                     , utf8-string
   default-language:    Haskell2010
 
 test-suite denga-transaq-test
   type:                exitcode-stdio-1.0
   hs-source-dirs:      test
   main-is:             Spec.hs
+  other-modules:       Private
   build-depends:       base
                      , denga-core
                      , transformers

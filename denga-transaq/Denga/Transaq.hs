@@ -28,6 +28,8 @@ import           Control.Lens
 
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as BC8
+import qualified Data.ByteString.UTF8 as UTF
+
 import           Data.ByteString.Lex.Fractional
 import qualified Data.Map as Map
 import           Data.Maybe (
@@ -59,7 +61,8 @@ runTransaq algo s = evalStateT algo $ def { _settings = s }
 connect :: Transaq (Maybe String)
 connect = do
   sts <- use settings
-  liftIO $ sendCommand $ formatNode' (connectionToXML $ connection sts)
+  let xml = connectionToXML $ connection sts
+  liftIO $ sendCommand $ formatNode' xml
 
 -- | Send @disconnect@ command.
 -- Return 'Nothing' on succes or a message on fail.
@@ -103,7 +106,7 @@ sendCommand command = do
     return $ handleXMLData result $ \xml -> case xml of
         Element "result" [("success", "true")]  _                                -> Nothing
         Element "result" [("success", "false")] [Element "message" _ [Text msg]] -> Just $ BC8.unpack msg
-        Element "error"  _                      [Text msg]                   -> throw $ SendCommandException $ BC8.unpack msg
+        Element "error"  _                      [Text msg]                   -> throw $ SendCommandException $ UTF.toString  msg
         otherwise -> throw $ XMLParserException "illegal attributes for <result> element"
 
 -- | Make single callback function to pass to 'FFI.setCallback' by partial appliance to a 'Map.Map'

@@ -58,7 +58,7 @@ data Settings = Settings
     { connection   :: !Connection
     , logDirectory :: !String
     , logLevel     :: !Int
-    }
+    } deriving (Show)
 
 instance Default Settings where
     def = Settings
@@ -84,7 +84,8 @@ data Connection = Connection
     , request_timeout :: !(Maybe Int)
     , push_u_limits   :: !(Maybe Int)
     , push_pos_equity :: !(Maybe Int)
-    }
+    } deriving (Show)
+
 
 instance Default Connection where
     def = Connection
@@ -131,7 +132,8 @@ data Proxy = Proxy
     , proxyPort     :: !(Maybe BString)
     , proxyLogin    :: !(Maybe BString)
     , proxyPassword :: !(Maybe BString)
-    }
+    } deriving (Show)
+
 
 instance Default Proxy where
     def = Proxy
